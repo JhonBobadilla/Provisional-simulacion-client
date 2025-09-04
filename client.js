@@ -3,14 +3,14 @@ require("dotenv").config();
 const { io } = require("socket.io-client");
 
 // === 1) ENV / FLAGS ==========================================================
-const URL          = process.env.SOCKET_URL || "http://localhost:50210";
-let   SOCKET_PATH  = process.env.SOCKET_PATH || "/socket.io";     // sin "/" al final
-const TOKEN        = (process.env.TOKEN || "").trim();
-const VEHICLE_ID   = Number(process.env.VEHICLE_ID || 1);
-const DRIVER_ID    = Number(process.env.DRIVER_ID || 1);
-const NAMESPACE    = (process.env.SOCKET_NAMESPACE || "").trim(); // ej: "/tracking" o vacío
-const ONLY_WS      = (process.env.ONLY_WEBSOCKET || "true").toLowerCase() === "true"; // true=solo websocket
-const USE_QUERY    = (process.env.USE_QUERY || "true").toLowerCase() === "true";
+const URL = process.env.SOCKET_URL || "http://localhost:50210";
+let SOCKET_PATH = process.env.SOCKET_PATH || "/socket.io"; // sin "/" al final
+const TOKEN = (process.env.TOKEN || "").trim();
+const VEHICLE_ID = Number(process.env.VEHICLE_ID || 1);
+const DRIVER_ID = Number(process.env.DRIVER_ID || 1);
+const NAMESPACE = (process.env.SOCKET_NAMESPACE || "").trim(); // ej: "/tracking" o vacío
+const ONLY_WS = (process.env.ONLY_WEBSOCKET || "true").toLowerCase() === "true"; // true=solo websocket
+const USE_QUERY = (process.env.USE_QUERY || "true").toLowerCase() === "true";
 const SEND_INTERVAL_MS = Number(process.env.SEND_INTERVAL_MS || 2000);
 
 // Normaliza path
@@ -23,7 +23,7 @@ const TARGET_URL = NAMESPACE ? `${URL}${NAMESPACE}` : URL;
 const transports = ONLY_WS ? ["websocket"] : ["websocket", "polling"];
 
 const clientOptions = {
-  path: SOCKET_PATH,                 // p.ej. "/socket.io"
+  path: SOCKET_PATH, // p.ej. "/socket.io"
   transports,
   withCredentials: true,
   forceNew: true,
@@ -37,25 +37,31 @@ const clientOptions = {
   auth: { token: TOKEN },
   extraHeaders: {
     "X-ACARREOSYA-Auth-Token": TOKEN, // variante 1
-    "X-ACY-Auth-Token": TOKEN,        // variante 2
-    "Authorization": `Bearer ${TOKEN}`// por si usa Bearer
+    "X-ACY-Auth-Token": TOKEN, // variante 2
+    Authorization: `Bearer ${TOKEN}`, // por si usa Bearer
   },
 };
 
 // Si el backend acepta token por querystring en el handshake
 if (USE_QUERY) {
-  clientOptions.query = { authToken: TOKEN };
+  clientOptions.query = {
+    authToken: TOKEN,
+    driverId: DRIVER_ID,
+    vehicleId: VEHICLE_ID,
+  };
 }
 
 const socket = io(TARGET_URL, clientOptions);
 
 // === 3) LOGS BÁSICOS =========================================================
-function log(...a) { console.log(new Date().toISOString(), ...a); }
+function log(...a) {
+  console.log(new Date().toISOString(), ...a);
+}
 
 socket.on("connect", () => {
   log("[connect]", socket.id);
-  startEmitting();                 // arranca emisión AL CONECTAR
-  sendLocation(4.7110, -74.0721);  // primer disparo inmediato
+  startEmitting(); // arranca emisión AL CONECTAR
+  sendLocation(4.711, -74.0721); // primer disparo inmediato
 });
 
 socket.on("connect_error", (e) => log("[connect_error]", e?.message || e));
@@ -73,7 +79,7 @@ function sendLocation(lat, lon) {
   const payload = {
     vehicleId: VEHICLE_ID,
     driverId: DRIVER_ID,
-    lat,           // si tu backend usa "lng", cámbialo
+    lat, // si tu backend usa "lng", cámbialo
     lon,
     speed: 0,
     heading: 0,
@@ -86,7 +92,8 @@ function sendLocation(lat, lon) {
 }
 
 let tick = 0;
-let lat = 4.7110, lon = -74.0721;
+let lat = Number(process.env.START_LAT || 4.711);
+let lon = Number(process.env.START_LON || -74.0721);
 let interval = null;
 
 function startEmitting() {
