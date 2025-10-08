@@ -11,7 +11,23 @@ const DRIVER_ID = Number(process.env.DRIVER_ID || 1);
 const NAMESPACE = (process.env.SOCKET_NAMESPACE || "").trim(); // ej: "/tracking" o vacío
 const ONLY_WS = (process.env.ONLY_WEBSOCKET || "true").toLowerCase() === "true"; // true=solo websocket
 const USE_QUERY = (process.env.USE_QUERY || "true").toLowerCase() === "true";
-const SEND_INTERVAL_MS = Number(process.env.SEND_INTERVAL_MS || 2000);
+const SEND_INTERVAL_MS = Number(process.env.SEND_INTERVAL_MS || 60000);
+const EVENT_NAME = process.env.EVENT_NAME || "driver:location";
+
+// Coordenadas iniciales por env
+let lat = Number(process.env.START_LAT || 4.711);
+let lon = Number(process.env.START_LON || -74.0721);
+
+// Offset automático opcional para evitar colisiones exactas al nacer
+const AUTO_OFFSET = (process.env.AUTO_OFFSET || "true").toLowerCase() === "true";
+if (AUTO_OFFSET) {
+  // Pequeño offset determinístico basado en DRIVER_ID y VEHICLE_ID
+  const seed = (DRIVER_ID * 73856093) ^ (VEHICLE_ID * 19349663);
+  const offA = ((seed % 2001) - 1000) / 1e7; // ~±0.0001 deg
+  const offB = ((((seed / 2003) | 0) % 2001) - 1000) / 1e7;
+  lat = Number((lat + offA).toFixed(6));
+  lon = Number((lon + offB).toFixed(6));
+}
 
 // Normaliza path
 if (SOCKET_PATH.endsWith("/")) SOCKET_PATH = SOCKET_PATH.slice(0, -1);
@@ -60,8 +76,12 @@ function log(...a) {
 
 socket.on("connect", () => {
   log("[connect]", socket.id);
-  startEmitting(); // arranca emisión AL CONECTAR
-  sendLocation(4.711, -74.0721); // primer disparo inmediato
+
+  // PRIMER DISPARO: usar las coords iniciales configuradas (NO hardcode)
+  sendLocation(lat, lon);
+
+  // Arranca la emisión periódica
+  startEmitting();
 });
 
 socket.on("connect_error", (e) => log("[connect_error]", e?.message || e));
@@ -73,14 +93,12 @@ socket.on("driver:location:ack", (data) => log("[ACK driver:location]", data));
 socket.on("server:broadcast", (data) => log("[broadcast]", data));
 
 // === 5) EMISIÓN DE COORDENADAS ==============================================
-const EVENT_NAME = process.env.EVENT_NAME || "driver:location";
-
-function sendLocation(lat, lon) {
+function sendLocation(latV, lonV) {
   const payload = {
     vehicleId: VEHICLE_ID,
     driverId: DRIVER_ID,
-    lat, // si tu backend usa "lng", cámbialo
-    lon,
+    lat: latV, // si tu backend usa "lng", cámbialo
+    lon: lonV,
     speed: 0,
     heading: 0,
     sentAt: new Date().toISOString(),
@@ -92,8 +110,6 @@ function sendLocation(lat, lon) {
 }
 
 let tick = 0;
-let lat = Number(process.env.START_LAT || 4.711);
-let lon = Number(process.env.START_LON || -74.0721);
 let interval = null;
 
 function startEmitting() {
@@ -101,6 +117,7 @@ function startEmitting() {
   log("[emitter] START interval =", SEND_INTERVAL_MS, "ms");
   interval = setInterval(() => {
     tick++;
+    // Random walk
     lat += (Math.random() - 0.5) * 0.0005;
     lon += (Math.random() - 0.5) * 0.0005;
     const la = Number(lat.toFixed(6));
