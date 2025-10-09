@@ -1,3 +1,4 @@
+// launcher.js
 require("dotenv").config();
 const { fork } = require("child_process");
 
@@ -12,257 +13,92 @@ const COMMON = {
   EVENT_NAME: process.env.EVENT_NAME || "driver:location",
 };
 
-// Lista de conductores => usa el TOKEN real de CADA driver.
-const DRIVERS = [
-  /////////////////////////////43/////////////////////////////////
-  {
-    name: "D1",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 21,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D11",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 23,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D12",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 24,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D13",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 25,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 26,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 33,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 35,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 43,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 44,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 45,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 46,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 47,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  {
-    name: "D14",
-    DRIVER_ID: 43,
-    VEHICLE_ID: 48,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzIiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEyODN9.NfvRZA1_jfQFkleVaN_xf8KnlAlMz99xP9NzmFXX7pc",
-    START_LAT: 4.711,
-    START_LON: -74.0721,
-  },
-  /////////////////////////////44/////////////////////////////////
-  {
-    name: "D2",
-    DRIVER_ID: 44,
-    VEHICLE_ID: 34,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ0IiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEzNTN9.a2yaebRQ9fKrLaGSX1c74k-9rvjkrXmSkICyPSEv0Bw",
-    START_LAT: 4.722,
-    START_LON: -74.065,
-  },
-  {
-    name: "D2",
-    DRIVER_ID: 44,
-    VEHICLE_ID: 36,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ0IiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEzNTN9.a2yaebRQ9fKrLaGSX1c74k-9rvjkrXmSkICyPSEv0Bw",
-    START_LAT: 4.722,
-    START_LON: -74.065,
-  },
-  {
-    name: "D2",
-    DRIVER_ID: 44,
-    VEHICLE_ID: 37,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ0IiwibW9kZWxOYW1lIjoidXNlci1kcml2ZXIiLCJpYXQiOjE3NTk5NjEzNTN9.a2yaebRQ9fKrLaGSX1c74k-9rvjkrXmSkICyPSEv0Bw",
-    START_LAT: 4.722,
-    START_LON: -74.065,
-  },
-  /////////////////////////////108////////////////////////////////
-  {
-    name: "D3",
-    DRIVER_ID: 108,
-    VEHICLE_ID: 32,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEwOCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxNDcwfQ.0n_IunKlw1NacCj1aksQC-Szv12IfGit5tbzKgK9vlw",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  /////////////////////////////110////////////////////////////////
-  {
-    name: "D4",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 27,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  {
-    name: "D41",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 22,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  {
-    name: "D41",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 23,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  {
-    name: "D41",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 24,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  {
-    name: "D41",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 25,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  {
-    name: "D41",
-    DRIVER_ID: 110,
-    VEHICLE_ID: 26,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExMCIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxMzkwfQ.WrQxV1fZEotPPnqhscLS_ujJRP7cV2bC3gaqB93LQug",
-    START_LAT: 4.7035,
-    START_LON: -74.08,
-  },
-  /////////////////////////////115////////////////////////////////
-  {
-    name: "D5-Cali",
-    DRIVER_ID: 115,
-    VEHICLE_ID: 38,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExNSIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxNDM3fQ.3nXLh68gLkSiUOtTJEpYQ9Wa0qBy4JaVdf3PDc_kveU",
-    START_LAT: 3.4216,
-    START_LON: -76.5205,
-  },
-  {
-    name: "D5-Cali",
-    DRIVER_ID: 115,
-    VEHICLE_ID: 40,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExNSIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxNDM3fQ.3nXLh68gLkSiUOtTJEpYQ9Wa0qBy4JaVdf3PDc_kveU",
-    START_LAT: 3.4216,
-    START_LON: -76.5205,
-  },
-  {
-    name: "D5-Cali",
-    DRIVER_ID: 115,
-    VEHICLE_ID: 41,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExNSIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxNDM3fQ.3nXLh68gLkSiUOtTJEpYQ9Wa0qBy4JaVdf3PDc_kveU",
-    START_LAT: 3.4216,
-    START_LON: -76.5205,
-  },
-  {
-    name: "D5-Cali",
-    DRIVER_ID: 115,
-    VEHICLE_ID: 42,
-    TOKEN:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExNSIsIm1vZGVsTmFtZSI6InVzZXItZHJpdmVyIiwiaWF0IjoxNzU5OTYxNDM3fQ.3nXLh68gLkSiUOtTJEpYQ9Wa0qBy4JaVdf3PDc_kveU",
-    START_LAT: 3.4216,
-    START_LON: -76.5205,
-  },
-];
+/**
+ * Descubre todos los DRIVER_ID configurados en el .env
+ * buscando variables del tipo DRIVER_<ID>_TOKEN
+ */
+function getDriverIdsFromEnv() {
+  const ids = new Set();
+  for (const key of Object.keys(process.env)) {
+    const m = key.match(/^DRIVER_(\d+)_TOKEN$/);
+    if (m) ids.add(m[1]);
+  }
+  return Array.from(ids).sort((a, b) => Number(a) - Number(b));
+}
+
+/**
+ * Lee y valida la config de un driver desde el .env
+ */
+function loadDriverConfig(driverId) {
+  const prefix = `DRIVER_${driverId}_`;
+
+  const token = process.env[`${prefix}TOKEN`];
+  if (!token) throw new Error(`Falta ${prefix}TOKEN en .env`);
+
+  const vehiclesStr = process.env[`${prefix}VEHICLES`];
+  if (!vehiclesStr)
+    throw new Error(`Falta ${prefix}VEHICLES (lista separada por comas)`);
+
+  const START_LAT = Number(process.env[`${prefix}START_LAT`]);
+  const START_LON = Number(process.env[`${prefix}START_LON`]);
+  if (!Number.isFinite(START_LAT) || !Number.isFinite(START_LON)) {
+    throw new Error(
+      `Faltan/son inválidos ${prefix}START_LAT / ${prefix}START_LON`
+    );
+  }
+
+  const name = process.env[`${prefix}NAME`] || `D${driverId}`;
+
+  const VEHICLE_IDS = vehiclesStr
+    .split(",")
+    .map((v) => Number(v.trim()))
+    .filter((v) => Number.isFinite(v));
+
+  if (VEHICLE_IDS.length === 0) {
+    throw new Error(`${prefix}VEHICLES no contiene IDs válidos`);
+  }
+
+  return {
+    name,
+    driverId: Number(driverId),
+    token,
+    START_LAT,
+    START_LON,
+    VEHICLE_IDS,
+  };
+}
+
+/**
+ * Construye el arreglo DRIVERS expandido por vehículo (uno por proceso)
+ */
+function buildDriversFromEnv() {
+  const driverIds = getDriverIdsFromEnv();
+  const list = [];
+
+  driverIds.forEach((id) => {
+    const cfg = loadDriverConfig(id);
+    cfg.VEHICLE_IDS.forEach((vehicleId, idx) => {
+      list.push({
+        name: cfg.VEHICLE_IDS.length > 1 ? `${cfg.name}-${idx + 1}` : cfg.name,
+        DRIVER_ID: cfg.driverId,
+        VEHICLE_ID: vehicleId,
+        TOKEN: cfg.token,
+        START_LAT: cfg.START_LAT,
+        START_LON: cfg.START_LON,
+      });
+    });
+  });
+
+  return list;
+}
+
+let DRIVERS = [];
+try {
+  DRIVERS = buildDriversFromEnv();
+} catch (err) {
+  console.error(`[config:error] ${err.message}`);
+  process.exit(1);
+}
 
 console.log(`Lanzando ${DRIVERS.length} conductores...\n`);
 
