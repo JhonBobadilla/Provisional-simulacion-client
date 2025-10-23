@@ -9,7 +9,7 @@ const COMMON = {
   SOCKET_NAMESPACE: process.env.SOCKET_NAMESPACE || "",
   ONLY_WEBSOCKET: process.env.ONLY_WEBSOCKET || "true",
   USE_QUERY: process.env.USE_QUERY || "true",
-  SEND_INTERVAL_MS: process.env.SEND_INTERVAL_MS || "60000",
+  SEND_INTERVAL_MS: process.env.SEND_INTERVAL_MS || "10000",
   EVENT_NAME: process.env.EVENT_NAME || "driver:location",
 };
 
