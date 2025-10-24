@@ -11,7 +11,7 @@ app.use(express.json());
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
-  path: "/socket.io",
+  path: "/socket.io/", // ⬅️ con slash final
   cors: {
     origin: true,
     credentials: true,
@@ -22,7 +22,11 @@ const io = new Server(httpServer, {
     ],
     methods: ["GET", "POST"],
   },
-  transports: ["websocket", "polling"],
+  transports: ["polling", "websocket"], // polling primero, luego WS
+  allowEIO3: true,
+  pingInterval: 20000,
+  pingTimeout: 45000,
+  connectTimeout: 20000,
 });
 
 app.locals.io = io;
@@ -30,45 +34,66 @@ app.locals.io = io;
 // === Handshake / Auth ========================================================
 io.use((socket, next) => {
   try {
-    const auth = socket.handshake.auth || {};
+    const hs = socket.handshake;
+    const auth = hs.auth || {};
+
+    // Tokens posibles
     const authToken = typeof auth.token === "string" ? auth.token : undefined;
 
-    const rawHeader = socket.handshake.headers["x-acarreosya-auth-token"];
+    const rawHeader = hs.headers["x-acarreosya-auth-token"];
     const headerToken = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
-    const bearer = socket.handshake.headers["authorization"];
+    const bearer = hs.headers["authorization"];
     const bearerToken =
       typeof bearer === "string" && bearer.toLowerCase().startsWith("bearer ")
         ? bearer.slice(7).trim()
         : undefined;
 
-    // También acepta query ?authToken=...
     const queryToken =
-      typeof socket.handshake.query?.authToken === "string"
-        ? socket.handshake.query.authToken
-        : undefined;
+      typeof hs.query?.authToken === "string" ? hs.query.authToken : undefined;
 
     const token = (
       (authToken || headerToken || bearerToken || queryToken || "") + ""
     ).trim();
 
-    console.log("[HS] path           =", socket.handshake.url);
-    console.log("[HS] headers keys   =", Object.keys(socket.handshake.headers));
-    console.log("[HS] has X-ACY?     =", !!headerToken);
-    console.log("[HS] has Authorization?", !!bearerToken);
-    console.log("[HS] query.authToken =", !!queryToken);
+    // Ids posibles en handshake
+    const queryDriverId = Number(hs.query?.driverId);
+    const authDriverId = Number(auth.driverId);
+    const userId = Number.isFinite(queryDriverId)
+      ? queryDriverId
+      : Number.isFinite(authDriverId)
+      ? authDriverId
+      : undefined;
+
+    const queryVehicleId = Number(hs.query?.vehicleId);
+    const authVehicleId = Number(auth.vehicleId);
+    const vehicleId = Number.isFinite(queryVehicleId)
+      ? queryVehicleId
+      : Number.isFinite(authVehicleId)
+      ? authVehicleId
+      : undefined;
+
+    console.log("[HS] path =", hs.url);
+    console.log(
+      "[HS] has X-ACY? =",
+      !!headerToken,
+      "has Bearer? =",
+      !!bearerToken,
+      "has queryToken? =",
+      !!queryToken
+    );
+    console.log("[HS] driverId =", userId, "vehicleId =", vehicleId);
 
     if (!token) return next(new Error("El token no ha sido encontrado"));
+    if (!userId) return next(new Error("driverId faltante en handshake"));
 
     // >>> Aquí normalmente validarías el JWT y extraerías el userId <<<
     // const payload = verify(token, process.env.JWT_SECRET);
-    // const userId = Number(payload.id);
-    const userId = Number(socket.handshake.query?.driverId) || 43; // demo para pruebas locales
+    // if (Number(payload.id) !== userId) return next(new Error("JWT inválido"));
 
-    console.log("[HS] token OK → userId =", userId);
-
-    socket.data.user = { id: userId, fullname: "Demo User" };
+    socket.data.user = { id: userId };
     socket.data.token = token;
+    if (Number.isFinite(vehicleId)) socket.data.vehicleId = vehicleId;
 
     next();
   } catch (e) {
@@ -79,30 +104,44 @@ io.use((socket, next) => {
 
 // === Conexión ================================================================
 io.on("connection", async (socket) => {
-  const user = socket.data?.user;
-  const userId = user?.id;
-  console.log(`✅ conectado user=${userId} socket=${socket.id}`);
+  const userId = socket.data?.user?.id;
+  const vehicleId = socket.data?.vehicleId;
 
-  // Cerrar sockets duplicados del mismo usuario
-  /*const sockets = await io.fetchSockets();
-  for (const s of sockets) {
-    if (s.id !== socket.id && s.data?.user?.id === userId) {
-      console.log(`Cerrando duplicado de user=${userId}: ${s.id}`);
-      s.disconnect(true);
+  console.log(
+    `✅ conectado user=${userId} vehicleId=${vehicleId ?? "N/A"} socket=${
+      socket.id
+    }`
+  );
+
+  // Rooms por usuario y (si aplica) por vehículo
+  const userRoom = `user:${userId}`;
+  socket.join(userRoom);
+  console.log(`[SOCKET] ${socket.id} unido a room ${userRoom}`);
+
+  if (Number.isFinite(vehicleId)) {
+    const vehicleRoom = `vehicle:${vehicleId}`;
+    socket.join(vehicleRoom);
+    console.log(`[SOCKET] ${socket.id} unido a room ${vehicleRoom}`);
+
+    // (Opcional) cierra duplicados por vehículo
+    const sockets = await io.fetchSockets();
+    for (const s of sockets) {
+      if (s.id !== socket.id && s.data?.vehicleId === vehicleId) {
+        console.log(`Cerrando duplicado vehicleId=${vehicleId}: ${s.id}`);
+        s.disconnect(true);
+      }
     }
-  }*/
-
-  const room = `user:${userId}`;
-  socket.join(room);
-  console.log(`[SOCKET] ${socket.id} unido a room ${room}`);
+  } else {
+    console.warn(`[WARN] vehicleId faltante en handshake para user ${userId}`);
+  }
 
   // === Evento principal: driver:location ====================================
   socket.on("driver:location", async (payload, cb) => {
     try {
       console.log("[SVR] driver:location payload =", payload);
 
-      const vehicleId = Number(payload?.vehicleId);
-      const driverId = Number(payload?.driverId);
+      const vehicleIdP = Number(payload?.vehicleId);
+      const driverIdP = Number(payload?.driverId);
       const lat = payload?.lat;
       const lon = payload?.lon;
       const speed = typeof payload?.speed === "number" ? payload.speed : 0;
@@ -114,8 +153,8 @@ io.on("connection", async (socket) => {
           : new Date().toISOString();
 
       if (
-        !vehicleId ||
-        !driverId ||
+        !vehicleIdP ||
+        !driverIdP ||
         typeof lat !== "number" ||
         typeof lon !== "number"
       ) {
@@ -129,17 +168,29 @@ io.on("connection", async (socket) => {
       console.log("[SVR] ACK →", ack);
       cb && cb(ack);
 
-      // Broadcast (a su room y a todos)
-      io.to(room).emit("server:broadcast", {
-        vehicleId,
+      // Broadcast: al room del usuario y, si está, al del vehículo
+      io.to(userRoom).emit("server:broadcast", {
+        vehicleId: vehicleIdP,
         lat,
         lon,
         speed,
         heading,
         sentAt,
       });
+
+      if (Number.isFinite(vehicleId)) {
+        io.to(`vehicle:${vehicleId}`).emit("server:broadcast", {
+          vehicleId: vehicleIdP,
+          lat,
+          lon,
+          speed,
+          heading,
+          sentAt,
+        });
+      }
+
       io.emit("driver:location:ack", {
-        vehicleId,
+        vehicleId: vehicleIdP,
         lat,
         lon,
         speed,
@@ -156,12 +207,14 @@ io.on("connection", async (socket) => {
 
   socket.on("disconnect", (reason) => {
     console.log(
-      `👋 disconnect user=${userId} socket=${socket.id} reason=${reason}`
+      `👋 disconnect user=${userId} vehicleId=${vehicleId ?? "N/A"} socket=${
+        socket.id
+      } reason=${reason}`
     );
   });
 });
 
-const PORT = process.env.PORT || 50210; // ⬅️ tu puerto real local
+const PORT = process.env.PORT || 50210;
 httpServer.listen(PORT, () => {
   console.log(`🚀 HTTP + Socket.IO escuchando en :${PORT}`);
 });
