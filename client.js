@@ -3,7 +3,7 @@ require("dotenv").config();
 const { io } = require("socket.io-client");
 
 // === 1) ENV / FLAGS ==========================================================
-const URL = process.env.SOCKET_URL || "http://localhost:50210";
+const URL = process.env.SOCKET_URL || "https://acyrealtime.inkubo.co/";
 let SOCKET_PATH = process.env.SOCKET_PATH || "/socket.io"; // sin "/" al final
 const TOKEN = (process.env.TOKEN || "").trim();
 const VEHICLE_ID = Number(process.env.VEHICLE_ID || 1);
@@ -19,7 +19,8 @@ let lat = Number(process.env.START_LAT || 4.711);
 let lon = Number(process.env.START_LON || -74.0721);
 
 // Offset automático opcional para evitar colisiones exactas al nacer
-const AUTO_OFFSET = (process.env.AUTO_OFFSET || "true").toLowerCase() === "true";
+const AUTO_OFFSET =
+  (process.env.AUTO_OFFSET || "true").toLowerCase() === "true";
 if (AUTO_OFFSET) {
   // Pequeño offset determinístico basado en DRIVER_ID y VEHICLE_ID
   const seed = (DRIVER_ID * 73856093) ^ (VEHICLE_ID * 19349663);
@@ -29,33 +30,41 @@ if (AUTO_OFFSET) {
   lon = Number((lon + offB).toFixed(6));
 }
 
-// Normaliza path
-if (SOCKET_PATH.endsWith("/")) SOCKET_PATH = SOCKET_PATH.slice(0, -1);
+// Mantén el slash final en SOCKET_PATH si viene así por env (proxies suelen usar /socket.io/)
+if (!SOCKET_PATH.startsWith("/")) SOCKET_PATH = `/${SOCKET_PATH}`;
 
-// Apunta a namespace si existe
-const TARGET_URL = NAMESPACE ? `${URL}${NAMESPACE}` : URL;
+// No agregues slash al final del URL base
+const baseURL = URL.replace(/\/+$/, "");
+
+// Apunta a namespace si existe (sin duplicar slashes)
+const TARGET_URL = NAMESPACE
+  ? `${baseURL}${NAMESPACE.startsWith("/") ? "" : "/"}${NAMESPACE}`
+  : baseURL;
 
 // === 2) CONEXIÓN =============================================================
-const transports = ONLY_WS ? ["websocket"] : ["websocket", "polling"];
+// Poner polling primero ayuda en proxies que bloquean upgrade; luego intenta WS
+const transports = ONLY_WS ? ["websocket"] : ["polling", "websocket"];
 
 const clientOptions = {
-  path: SOCKET_PATH, // p.ej. "/socket.io"
+  path: SOCKET_PATH, // respeta "/socket.io/" si así lo define el proxy
   transports,
   withCredentials: true,
   forceNew: true,
-  timeout: 10000,
+  timeout: 15000,
   reconnection: true,
-  reconnectionAttempts: 10,
+  reconnectionAttempts: 20,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
+  reconnectionDelayMax: 8000,
 
   // Enviar token en todas las formas comunes
   auth: { token: TOKEN },
   extraHeaders: {
-    "X-ACARREOSYA-Auth-Token": TOKEN, // variante 1
-    "X-ACY-Auth-Token": TOKEN, // variante 2
-    Authorization: `Bearer ${TOKEN}`, // por si usa Bearer
+    "X-ACARREOSYA-Auth-Token": TOKEN,
+    Authorization: `Bearer ${TOKEN}`,
   },
+
+  // Asegura HTTPS correcto en Node (no es necesario en la mayoría, pero no estorba)
+  secure: true,
 };
 
 // Si el backend acepta token por querystring en el handshake
