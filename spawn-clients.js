@@ -7,7 +7,7 @@ const COMMON = {
   SOCKET_URL: process.env.SOCKET_URL || "http://localhost:50210",
   SOCKET_PATH: process.env.SOCKET_PATH || "/socket.io",
   SOCKET_NAMESPACE: process.env.SOCKET_NAMESPACE || "",
-  ONLY_WEBSOCKET: process.env.ONLY_WEBSOCKET || "true",
+  ONLY_WEBSOCKET: process.env.ONLY_WEBSOCKET || "false",
   USE_QUERY: process.env.USE_QUERY || "true",
   SEND_INTERVAL_MS: process.env.SEND_INTERVAL_MS || "10000",
   EVENT_NAME: process.env.EVENT_NAME || "driver:location",
@@ -31,24 +31,19 @@ function getDriverIdsFromEnv() {
  */
 function loadDriverConfig(driverId) {
   const prefix = `DRIVER_${driverId}_`;
-
   const token = process.env[`${prefix}TOKEN`];
   if (!token) throw new Error(`Falta ${prefix}TOKEN en .env`);
 
   const vehiclesStr = process.env[`${prefix}VEHICLES`];
-  if (!vehiclesStr)
-    throw new Error(`Falta ${prefix}VEHICLES (lista separada por comas)`);
+  if (!vehiclesStr) throw new Error(`Falta ${prefix}VEHICLES (lista separada por comas)`);
 
   const START_LAT = Number(process.env[`${prefix}START_LAT`]);
   const START_LON = Number(process.env[`${prefix}START_LON`]);
   if (!Number.isFinite(START_LAT) || !Number.isFinite(START_LON)) {
-    throw new Error(
-      `Faltan/son inválidos ${prefix}START_LAT / ${prefix}START_LON`
-    );
+    throw new Error(`Faltan/son inválidos ${prefix}START_LAT / ${prefix}START_LON`);
   }
 
   const name = process.env[`${prefix}NAME`] || `D${driverId}`;
-
   const VEHICLE_IDS = vehiclesStr
     .split(",")
     .map((v) => Number(v.trim()))
@@ -58,14 +53,7 @@ function loadDriverConfig(driverId) {
     throw new Error(`${prefix}VEHICLES no contiene IDs válidos`);
   }
 
-  return {
-    name,
-    driverId: Number(driverId),
-    token,
-    START_LAT,
-    START_LON,
-    VEHICLE_IDS,
-  };
+  return { name, driverId: Number(driverId), token, START_LAT, START_LON, VEHICLE_IDS };
 }
 
 /**
@@ -74,7 +62,6 @@ function loadDriverConfig(driverId) {
 function buildDriversFromEnv() {
   const driverIds = getDriverIdsFromEnv();
   const list = [];
-
   driverIds.forEach((id) => {
     const cfg = loadDriverConfig(id);
     cfg.VEHICLE_IDS.forEach((vehicleId, idx) => {
@@ -88,7 +75,6 @@ function buildDriversFromEnv() {
       });
     });
   });
-
   return list;
 }
 
@@ -114,9 +100,7 @@ DRIVERS.forEach((cfg) => {
   };
 
   const child = fork("./client.js", [], { env });
-  console.log(
-    `[spawn] ${cfg.name} → DRIVER_ID=${cfg.DRIVER_ID} VEHICLE_ID=${cfg.VEHICLE_ID}`
-  );
+  console.log(`[spawn] ${cfg.name} → DRIVER_ID=${cfg.DRIVER_ID} VEHICLE_ID=${cfg.VEHICLE_ID}`);
 
   child.on("exit", (code) => {
     console.log(`[exit] ${cfg.name} (driver ${cfg.DRIVER_ID}) → code ${code}`);
