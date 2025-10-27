@@ -30,7 +30,7 @@ if (AUTO_OFFSET) {
   lat = Number((lat + offA).toFixed(6));
   lon = Number((lon + offB).toFixed(6));
 }
-
+git;
 const TARGET_URL = NAMESPACE ? `${URL}${NAMESPACE}` : URL;
 
 // === 2) CONEXIÓN =============================================================
