@@ -30,17 +30,13 @@ if (AUTO_OFFSET) {
   lat = Number((lat + offA).toFixed(6));
   lon = Number((lon + offB).toFixed(6));
 }
-git;
+
 const TARGET_URL = NAMESPACE ? `${URL}${NAMESPACE}` : URL;
 
 // === 2) CONEXIÓN =============================================================
-const transports =
-  (process.env.ONLY_WEBSOCKET || "false").toLowerCase() === "true"
-    ? ["websocket"]
-    : ["polling"];
-
-const upgrade =
-  (process.env.ONLY_WEBSOCKET || "false").toLowerCase() === "true";
+// Si NO hay upgrade WS en Nginx, usa solo polling. Cuando lo habiliten, pon ONLY_WEBSOCKET=true.
+const transports = ["websocket"];
+const upgrade = true;
 
 const clientOptions = {
   path: SOCKET_PATH,
@@ -82,16 +78,10 @@ function log(...a) {
 socket.on("connect", () => {
   log("[connect]", socket.id);
 
-  // === JOIN INMEDIATO =======================================================
-  const joinPayload = {
-    type: "driver",
-    id: DRIVER_ID,
-    rooms: [`driver:${DRIVER_ID}`, `vehicle:${VEHICLE_ID}`],
-    user: { id: DRIVER_ID, fullname: DRIVER_NAME, role: "driver" },
-  };
-  socket.emit("join", joinPayload, (resp) => {
-    log("[join ACK]", resp);
-  });
+  // === JOIN MÍNIMO ==========================================================
+  socket.emit("join", { type: "driver", id: DRIVER_ID }, (resp) =>
+    log("[join ACK]", resp)
+  );
 
   // primer envío inmediato y luego intervalo
   sendLocation(lat, lon);
@@ -126,8 +116,8 @@ function sendLocation(latV, lonV) {
   socket.emit(EVENT_NAME, payload, (ack) => log("[emit ACK]", EVENT_NAME, ack));
 }
 
-let tick = 0,
-  interval = null;
+let tick = 0;
+let interval = null;
 function startEmitting() {
   if (interval) return;
   log("[emitter] START interval =", SEND_INTERVAL_MS, "ms");
