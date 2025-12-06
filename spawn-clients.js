@@ -5,11 +5,11 @@ const { fork } = require("child_process");
 // Config común tomada de .env (SOCKET_URL, PATH, etc.)
 const COMMON = {
   SOCKET_URL: process.env.SOCKET_URL || "http://localhost:50210",
-  SOCKET_PATH: process.env.SOCKET_PATH || "/socket.io/",
+  SOCKET_PATH: process.env.SOCKET_PATH || "/socket.io",
   SOCKET_NAMESPACE: process.env.SOCKET_NAMESPACE || "",
   ONLY_WEBSOCKET: process.env.ONLY_WEBSOCKET || "false",
   USE_QUERY: process.env.USE_QUERY || "true",
-  SEND_INTERVAL_MS: process.env.SEND_INTERVAL_MS || "10000",
+  SEND_INTERVAL_MS: process.env.SEND_INTERVAL_MS || "600000",
   EVENT_NAME: process.env.EVENT_NAME || "driver:location",
 };
 
@@ -44,8 +44,8 @@ function loadDriverConfig(driverId) {
   const name = process.env[`${prefix}NAME`] || `D${driverId}`;
   const VEHICLE_IDS = vehiclesStr
     .split(",")
-    .map((v) => Number(v.trim()))
-    .filter((v) => Number.isFinite(v));
+    .map(v => Number(v.trim()))
+    .filter(v => Number.isFinite(v));
 
   if (VEHICLE_IDS.length === 0) {
     throw new Error(`${prefix}VEHICLES no contiene IDs válidos`);
@@ -65,7 +65,7 @@ function loadDriverConfig(driverId) {
 function buildDriversFromEnv() {
   const driverIds = getDriverIdsFromEnv();
   const list = [];
-  driverIds.forEach((id) => {
+  driverIds.forEach(id => {
     const cfg = loadDriverConfig(id);
     cfg.VEHICLE_IDS.forEach((vehicleId, idx) => {
       list.push({
@@ -91,7 +91,7 @@ try {
 
 console.log(`Lanzando ${DRIVERS.length} conductores...\n`);
 
-DRIVERS.forEach((cfg) => {
+DRIVERS.forEach(cfg => {
   const env = {
     ...process.env,
     ...COMMON,
@@ -100,15 +100,19 @@ DRIVERS.forEach((cfg) => {
     TOKEN: cfg.TOKEN,
     START_LAT: String(cfg.START_LAT),
     START_LON: String(cfg.START_LON),
-    DRIVER_NAME: cfg.name, // ⬅️ para el join.user.fullname
+    DRIVER_NAME: cfg.name, // para el join.user.fullname
   };
 
-  const child = fork("./client.js", [], { env });
+  const child = fork("./client.js", [], {
+    env,
+    stdio: "inherit", //////////////////////////////
+  });
+
   console.log(
     `[spawn] ${cfg.name} → DRIVER_ID=${cfg.DRIVER_ID} VEHICLE_ID=${cfg.VEHICLE_ID}`
   );
 
-  child.on("exit", (code) => {
+  child.on("exit", code => {
     console.log(`[exit] ${cfg.name} (driver ${cfg.DRIVER_ID}) → code ${code}`);
   });
 });
